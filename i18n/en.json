@@ -1,0 +1,23 @@
+{
+  "label": "🌍 English",
+  "pageTitle": "Will you be my sweetheart? (✧ω✧)",
+  "greeting": "What cute name should I call you? (´• ω •`) ♡",
+  "subGreeting": "Secret is okay~ (⁄ ⁄•⁄ω⁄•⁄ ⁄)(KEEP SPACE)",
+  "usernamePlaceholder": "Type your sweet name here...",
+  "confirmButton": "Confirm ♡(˘ε˘ʃƪ)",
+  "xiaohongshuLinkText": "REDnote(≧∇≦)ﾉ",
+  "douyinLinkText": "TikTok ver.Chinese Mainland Douyin(๑˃ᴗ˂)ﻭ",
+  "repoLinkText": "Source Code (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧",
+  "freeNotice": "ฅ•ﻌ•ฅ FREE PROJECT! If you paid, go get refund! (╯°□°）╯",
+  "questionTemplate": "{{username}}? Will you be my forever love? (ﾉ>ω<)ﾉ♡",
+  "loveMessage": "LOVE EXPLOSION!!! ♡⸜(˶˃ ᵕ ˂˶)⸝\n{{username}}! You stole my heart! (灬º‿º灬)♡",
+  "yesButton": "Yes! (✧∀✧)",
+  "noButton": "No... (；へ：)",
+  "noTexts": [
+    "Wait, really? (⊙_⊙;)",
+    "My heart is cracking... (´；д；`)",
+    "Please think again! (ﾉ`Д´)ﾉ",
+    "I'll cry a river... (T^T)",
+    "Final answer? (눈‸눈)"
+  ]
+}

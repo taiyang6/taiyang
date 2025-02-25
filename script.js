@@ -1,162 +1,252 @@
-// 自动检测系统语言，默认英文
-const userLang = navigator.language || navigator.userLanguage;
-const lang = userLang.startsWith('zh') ? 'zh' : 'en';
-
-// 定义多语言文本资源
-const resources = {
-    zh: {
-        pageTitle: "可以成为我的恋人吗？",
-        greeting: "你希望我怎么称呼你呢？(*>﹏<*)′",
-        subGreeting: "不想告诉我的话也可以留空哦",
-        usernamePlaceholder: "请输入你的名字",
-        confirmButton: "是这个名字呢",
-        xiaohongshuLinkText: "小红书(*^▽^*)",
-        douyinLinkText: "抖音( •̀ ω •́ )",
-        repoLinkText: "源代码仓库ˋ( ° ▽、° )",
-        questionTemplate: (username) => `可以成为我的恋人吗？${username}`,
-        loveMessage: (username) => `!!!喜欢你!! ( >᎑<)♡︎ᐝ  ${username ? `${username}  ♡︎ᐝ(>᎑< )` : ""}`,
-        yesButton: "可以",
-        noButton: "不要",
-        noTexts: [
-            "？你认真的吗…",
-            "要不再想想？",
-            "不许选这个！",
-            "我会很伤心…",
-            "不行:(",
-        ]
+// script.js
+const i18n = {
+    currentLang: 'zh-CN',
+    translations: {},
+    langMap: {
+        'zh-HK': 'zh-TW',
+        'zh-MO': 'zh-TW'
     },
-    en: {
-        pageTitle: "Will you be my sweetheart?",
-        greeting: "What nickname can I call you? (´• ω •`) ♡",
-        subGreeting: "It's okay to keep it secret~",
-        usernamePlaceholder: "Type your cute name here...",
-        confirmButton: "Confirm ( ˘ ³˘)♥",
-        xiaohongshuLinkText: "Little Red Book ヾ(☆▽☆)",
-        douyinLinkText: "Douyin/TikTok ( •̀ ω •́ )",
-        repoLinkText: "Source Repo (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧",
-        questionTemplate: (username) =>
-            username ? `Will you be my forever ${username}? (ﾉ>ω<)ﾉ :♡`
-                : "Be my special one? (⁄ ⁄•⁄ω⁄•⁄ ⁄)",
-        loveMessage: (username) =>
-            `LOVE EXPLOSION!!! ♡⸜(˶˃ ᵕ ˂˶)⸝♡\n${username ? `My dearest ${username},\nYou stole my heart! (灬º‿º灬)`
-                : "You're my destiny! (๑>ᴗ<๑)"
-            }`,
-        yesButton: "Yes",
-        noButton: "No",
-        noTexts: [
-            "Wait really?",
-            "My heart is cracking...",
-            "Please think again!",
-            "I'll cry a river...",
-            "Final answer? (눈‸눈)"
-        ]
-    }
 
+    //中國港澳臺地區均映射為zh-TW
+
+    // 初始化语言 | Initialize language
+    async init() {
+        // 获取语言偏好 | Get language preference
+        const userPref = localStorage.getItem('userLangPreference');
+        const envLang = document.documentElement.getAttribute('data-lang');
+        this.currentLang = this.langMap[userPref || envLang] || 'zh-CN';
+        
+        await this.loadTranslations();
+        this.applyTranslations();
+        return this.translations;
+    },
+
+    // 加载语言文件（带三级回退）| Load translations with fallback
+    async loadTranslations() {
+        const fallbackChain = [
+            this.currentLang,  
+            'en',             
+            'zh-CN'           
+        ];
+
+        for (const lang of fallbackChain) {
+            try {
+                const response = await fetch(`i18n/${lang}.json`);
+                this.translations = await response.json();
+                console.log(`加载语言成功: ${lang} | Loaded language: ${lang}`);
+                return;
+            } catch (error) {
+                console.warn(`${lang} 加载失败，尝试下一个回退 | ${lang} load failed, trying next fallback`);
+            }
+        }
+        throw new Error('所有语言回退方案失败 | All language fallbacks failed');
+    },
+
+    // 应用翻译到页面 | Apply translations
+    applyTranslations() {
+        // 更新文本内容 | Update text content
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            el.textContent = this.translations[el.getAttribute('data-i18n')];
+        });
+        
+        // 更新输入框占位符 | Update input placeholder
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            el.placeholder = this.translations[el.getAttribute('data-i18n-placeholder')];
+        });
+        
+        // 更新页面标题 | Update page title
+        document.title = this.translations.pageTitle;
+    },
+
+    // 切换语言方法 | Switch language method
+    async switchLanguage(langCode) {
+        localStorage.setItem('userLangPreference', langCode);
+        document.documentElement.setAttribute('data-lang', langCode);
+        this.currentLang = this.langMap[langCode] || langCode;
+        await this.loadTranslations();
+        this.applyTranslations();
+        this.updateDynamicContent();
+    },
+
+    // 更新动态内容 | Update dynamic content
+    updateDynamicContent() {
+        const username = document.getElementById('usernameInput').value.substring(0, 20);
+        const questionEl = document.getElementById('question');
+        if (questionEl) {
+            questionEl.innerHTML = this.template(
+                this.translations.questionTemplate,
+                { username: username || '' }
+            );
+        }
+    },
+
+    // 模板引擎（带XSS防护）| Template engine with XSS protection
+    template(str, data) {
+        const escape = (s) => String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        return str.replace(/{{(.*?)}}/g, (_, k) => 
+            escape(data[k.trim()] || '') 
+        );
+    }
 };
-const texts = resources[lang];
 
-// 更新 HTML 文本内容
-document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
-document.title = texts.pageTitle;
+// 初始化语言切换器 | Initialize language switcher
+async function initLanguageSwitcher() {
+    const select = document.getElementById('languageSelect');
+    const languages = [
+        // 🌏 中文系
+        'zh-CN',    // 🇨🇳 简体中文（中国大陆）| Simplified Chinese
+        'zh-TW',    // TW 繁體中文（中國臺灣）| Traditional Chinese (Taiwan)
+        'zh-HK',    // 🇭🇰 繁體中文（香港）| Traditional Chinese (Hong Kong)
+        'zh-MO',    // 🇲🇴 繁體中文（澳門）| Traditional Chinese (Macau)
+      
+        // 🌍 英语系
+        'en',       // 🌐 英语（通用）| English (General)
 
-document.getElementById('greeting').innerText = texts.greeting;
-document.getElementById('subGreeting').innerText = texts.subGreeting;
-document.getElementById('usernameInput').placeholder = texts.usernamePlaceholder;
-document.getElementById('confirmNameButton').innerText = texts.confirmButton;
-document.getElementById('xiaohongshuLink').innerText = texts.xiaohongshuLinkText;
-document.getElementById('douyinLink').innerText = texts.douyinLinkText;
-document.getElementById('repoLink').innerText = texts.repoLinkText;
-document.getElementById('question').innerText = texts.questionTemplate("");
-document.getElementById('yes').innerText = texts.yesButton;
-document.getElementById('no').innerText = texts.noButton;
-
-// 获取元素
-const nameInput = document.getElementById('usernameInput');
-const confirmNameButton = document.getElementById('confirmNameButton');
-const questionText = document.getElementById('question');
-const yesButton = document.getElementById('yes');
-const noButton = document.getElementById('no');
-const mainImage = document.getElementById('mainImage');
-const nameInputContainer = document.getElementById('nameInputContainer');
-const confessionContainer = document.getElementById('confessionContainer');
-const buttonsContainer = document.querySelector('.buttons');
-const xiaohongshuLink = document.getElementById('xiaohongshuLink');
-const douyinLink = document.getElementById('douyinLink');
-const repoLink = document.getElementById('repoLink');
-
-// 显示名字输入框
-nameInputContainer.style.display = 'block';
-
-// 保存用户名，避免重复解析
-let safeUsername = "";
-
-// 确认名字按钮点击事件
-confirmNameButton.addEventListener('click', function () {
-    let username = nameInput.value;
-    // 限制用户名长度，避免页面样式崩坏
-    const maxLength = 20;
-    safeUsername = username ? username.substring(0, maxLength) : "";
-    // 隐藏名字输入框，显示表白内容
-    nameInputContainer.style.display = 'none';
-    // 隐藏新增的链接元素
-    xiaohongshuLink.style.display = 'none';
-    douyinLink.style.display = 'none';
-    repoLink.style.display = 'none';
-    confessionContainer.style.display = 'block';
-    // 给按钮容器添加动画类名
-    buttonsContainer.classList.add('slide-up-fade-in');
-    // 使用多语言文本资源更新问题文本
-    questionText.innerText = texts.questionTemplate(safeUsername);
-});
-
-let clickCount = 0; // 记录点击 No 的次数
-
-// No 按钮点击事件
-noButton.addEventListener('click', function () {
-    clickCount++;
-    // 让 Yes 变大，每次放大 2 倍
-    let yesSize = 1 + clickCount * 1.2;
-    yesButton.style.transform = `scale(${yesSize})`;
-    // 挤压 No 按钮，每次右移 50px
-    let noOffset = clickCount * 50;
-    noButton.style.transform = `translateX(${noOffset}px)`;
-    // 让图片和文字往上移动
-    let moveUp = clickCount * 25;
-    mainImage.style.transform = `translateY(-${moveUp}px)`;
-    questionText.style.transform = `translateY(-${moveUp}px)`;
-    // 更新 No 按钮文字（前 5 次）
-    if (clickCount <= texts.noTexts.length) {
-        noButton.innerText = texts.noTexts[clickCount - 1];
+        // 🌏 东亚语言
+        'ja',       // 🇯🇵 日本語 | Japanese
+        'ko',       // 🇰🇷 한국어 | Korean 
+      
+        // 🌏 东南亚语言
+        'th',       // 🇹🇭 ภาษาไทย | Thai
+        'vi',       // 🇻🇳 Tiếng Việt | Vietnamese
+        'id',       // 🇮🇩 Bahasa Indonesia | Indonesian
+        'ms',       // 🇲🇾 Bahasa Melayu | Malay
+      
+        // 🇪🇺 欧洲语言
+        'de',       // 🇩🇪 Deutsch | German (General)
+        'de-DE',    // 🇩🇪 Deutsch (Deutschland) 
+        'fr',       // 🇫🇷 Français | French (General)
+        'fr-FR',    // 🇫🇷 Français (France) 
+        'es',       // 🇪🇸 Español | Spanish (General)
+        'es-ES',    // 🇪🇸 Español (España) 
+        'es-MX',    // 🇲🇽 Español (México) 
+        'it',       // 🇮🇹 Italiano | Italian
+        'ru',       // 🇷🇺 Русский | Russian
+        'pt',       // 🇵🇹 Português | Portuguese (General)
+        'pt-BR',    // 🇧🇷 Português (Brasil)  
+        'pt-PT',    // 🇵🇹 Português (Portugal) 
+      
+        // 🌍 其他主要语言
+        'ar',       // 🇸🇦 العربية | Arabic (Standard)
+        'hi',       // 🇮🇳 हिन्दी | Hindi
+        'tr',       // 🇹🇷 Türkçe | Turkish
+        'nl',       // 🇳🇱 Nederlands | Dutch
+        'pl',       // 🇵🇱 Polski | Polish
+        'sv',       // 🇸🇪 Svenska | Swedish
+        'fi',       // 🇫🇮 Suomi | Finnish
+        'he',       // 🇮🇱 עברית | Hebrew
+        'el',       // 🇬🇷 Ελληνικά | Greek
+      ];
+    
+    // 动态加载选项 | Dynamically load options
+    for (const lang of languages) {
+        try {
+            const response = await fetch(`i18n/${lang}.json`);
+            const data = await response.json();
+            const option = new Option(data.label, lang);
+            option.selected = lang === i18n.currentLang;
+            select.appendChild(option);
+        } catch (error) {
+            console.warn(`语言 ${lang} 加载失败 | Language ${lang} load failed`);
+        }
     }
-    // 使用映射更新图片
-    const imageMap = {
-        1: "assets/images/shocked.png",  // 震惊
-        2: "assets/images/think.png",    // 思考
-        3: "assets/images/angry.png",    // 生气
-        4: "assets/images/crying.png",   // 哭
+
+    // 绑定切换事件 | Bind change event
+    select.addEventListener('change', () => {
+        i18n.switchLanguage(select.value);
+    });
+}
+
+
+// 主程序入口 | Main Program
+document.addEventListener('DOMContentLoaded', async () => {
+    // 并行初始化 | Parallel initialization
+    await Promise.all([
+        i18n.init(),
+        initLanguageSwitcher()
+    ]);
+
+    // 获取元素引用 | Get elements
+    const elements = {
+        nameInput: document.getElementById('usernameInput'),
+        confirmButton: document.getElementById('confirmNameButton'),
+        questionText: document.getElementById('question'),
+        yesButton: document.getElementById('yes'),
+        noButton: document.getElementById('no'),
+        nameInputContainer: document.getElementById('nameInputContainer'),
+        confessionContainer: document.getElementById('confessionContainer'),
+        mainImage: document.getElementById('mainImage')
     };
-    if (clickCount in imageMap) {
-        mainImage.src = imageMap[clickCount];
-    } else if (clickCount >= 5) {
-        mainImage.src = "assets/images/crying.png";
-    }
-});
 
-// Yes 按钮点击事件，进入表白成功页面
-const loveTest = (username) => texts.loveMessage(username);
-yesButton.addEventListener('click', function () {
-    const username = safeUsername;
-    // 先创建基础 HTML 结构
-    document.body.innerHTML = `
-        <div class="yes-screen">
-            <h1 class="yes-text"></h1>
-            <img src="assets/images/hug.png" alt="拥抱" class="yes-image">
-        </div>
-    `;
-    // 确保用户名安全地插入
-    document.querySelector(".yes-text").innerText = loveTest(username);
-    // 禁止滚动，保持页面美观
-    document.body.style.overflow = "hidden";
-    // 给表白成功页面添加慢慢浮现动画类名
-    document.querySelector('.yes-screen').classList.add('fade-in');
+    // 显示输入容器 | show inout contaniner
+    elements.nameInputContainer.style.display = 'block';
+
+    // 确认按钮事件  | envent of button
+    elements.confirmButton.addEventListener('click', () => {
+        const username = elements.nameInput.value.substring(0, 20);
+        elements.questionText.innerHTML = i18n.template(
+            i18n.translations.questionTemplate, 
+            { username: username || '' }
+        );
+        elements.nameInputContainer.style.display = 'none';
+        elements.confessionContainer.style.display = 'block';
+        // 给按钮容器添加动画类名 | in anime
+        elements.confessionContainer.querySelector('.buttons').classList.add('slide-up-fade-in');
+    });
+
+    let clickCount = 0; // 记录点击 No 的次数 | Record the number of clicks on the No button
+// No 按钮点击事件 | No button click event
+    elements.noButton.addEventListener('click', function () {
+        clickCount++;
+    // 让 Yes 变大，每次放大 2 倍 | Make Yes button bigger, double the size each time
+    let yesSize = 1 + clickCount * 1.2;
+        elements.yesButton.style.transform = `scale(${yesSize})`;
+    // 挤压 No 按钮，每次右移 50px | Squeeze the No button and move it 50px to the right each time
+    let noOffset = clickCount * 50;
+        elements.noButton.style.transform = `translateX(${noOffset}px)`;
+    // 让图片和文字往上移动 | Move the image and text up
+    let moveUp = clickCount * 25;
+        elements.mainImage.style.transform = `translateY(-${moveUp}px)`;
+        elements.questionText.style.transform = `translateY(-${moveUp}px)`;
+    // 更新 No 按钮文字（前 5 次） | Update the text of the No button (first 5 times)
+    if (clickCount <= i18n.translations.noTexts.length) {
+            elements.noButton.innerText = i18n.translations.noTexts[clickCount - 1];
+        }
+    // 使用映射更新图片 | Update the image using the mapping
+    const imageMap = {
+            1: "assets/images/shocked.png",  // 震惊
+            2: "assets/images/think.png",    // 思考
+            3: "assets/images/angry.png",    // 生气
+            4: "assets/images/crying.png",   // 哭
+        };
+        if (clickCount in imageMap) {
+            elements.mainImage.src = imageMap[clickCount];
+        } else if (clickCount >= 5) {
+            elements.mainImage.src = "assets/images/crying.png";
+        }
+    });
+
+// Yes 按钮点击事件，进入表白成功页面 | Yes button click event, enter the successful confession page
+    const loveTest = (username) => i18n.template(i18n.translations.loveMessage, { username: username });
+    elements.yesButton.addEventListener('click', function () {
+        const username = elements.nameInput.value.substring(0, 20);
+// 确保用户名安全地插入 | Ensure the username is inserted safely
+        document.body.innerHTML = `
+            <div class="yes-screen">
+                <h1 class="yes-text"></h1>
+                <img src="assets/images/hug.png" alt="Hug" class="yes-image">
+            </div>
+        `;
+        // 确保用户名安全地插入
+        document.querySelector(".yes-text").innerText = loveTest(username);
+        // 禁止滚动，保持页面美观 | Disable scrolling to keep the page beautiful
+        document.body.style.overflow = "hidden";
+        // 给表白成功页面添加慢慢浮现动画类名 | Add a fade-in animation class name to the successful confession page
+        document.querySelector('.yes-screen').classList.add('fade-in');
+    });
 });
