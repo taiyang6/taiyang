@@ -71,15 +71,6 @@ body {
     align-items: center;
 }
 
-#xiaohongshuLink,
-#douyinLink,
-#repoLink {
-    font-size: 2vw;
-    color: #68495b;
-    text-decoration: none;
-    margin-top: 5px;
-}
-
 /* 标题样式 | Style of the title */
 h1 {
     font-size: 3.5vw;
@@ -314,13 +305,6 @@ input:focus {
     h1 {
         font-size: 6vw !important;
         margin: 10px 0;
-    }
-
-    /* 免费声明优化 | Free notice optimization */
-    .free-notice {
-        font-size: 14px;  /* 固定像素保证可读性 | Fixed pixels for readability */
-        margin: 5px 0;
-        padding: 6px;
     }
 
     /* 按钮优化 | Button optimization */
